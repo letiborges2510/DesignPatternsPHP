@@ -1,126 +1,116 @@
-# DesignPatternsPHP
+# Padrão de Projeto Adapter — Book / EBook / Kindle
 
-[![Build Status](https://github.com/DesignPatternsPHP/DesignPatternsPHP/workflows/CI/badge.svg?branch=main)](https://github.com/DesignPatternsPHP/DesignPatternsPHP/actions)
-[![Documentation Status](https://readthedocs.org/projects/designpatternsphp/badge/?version=latest)](https://designpatternsphp.readthedocs.io/?badge=latest)
+Atividade da disciplina de Modelagem de Padrões de Projeto, implementando o
+padrão estrutural **Adapter** em PHP, com base no projeto
+[DesignPatternsPHP](https://github.com/DesignPatternsPHP/DesignPatternsPHP).
 
-[Read the Docs of DesignPatternsPHP](http://designpatternsphp.readthedocs.org)
-or [Download as PDF/Epub](https://readthedocs.org/projects/designpatternsphp/downloads/)
+Alunas: Leticia Borges e Yasmin Oliveira.
 
-This is a collection of known design patterns and some sample codes on how to implement them in PHP. Every pattern has a small list of examples.
+## Objetivo
 
-I think the problem with patterns is that often people do know them but don't know when to apply which. Remember that each pattern has its own trade-offs. And you need to pay attention more to why you're choosing a certain pattern than to how to implement it.
+O código cliente que consome a interface `Book` não consegue interagir
+diretamente com instâncias de `Kindle`, pois este implementa a interface
+`EBook`, que possui nomes de métodos e tipos de retorno diferentes.
 
-## Installation
-You should look at and run the tests to see what happens in the example.
-To do this, you should install dependencies with `Composer` first:
+O objetivo desta atividade foi criar uma classe adaptadora que, utilizando
+**composição**, traduz as chamadas da interface esperada pelo cliente
+(`Book`, o *Target*) para os métodos da classe externa (`EBook`/`Kindle`,
+o *Adaptee*).
 
+## Identificação do conflito
+
+| Interface `Book` (esperada pelo cliente) | Interface `EBook` (implementada por `Kindle`) |
+|---|---|
+| `open()` | `unlock()` |
+| `turnPage()` | `pressNext()` |
+| `getPage(): int` | `getPage(): array` (retorna `[páginaAtual, totalPáginas]`) |
+
+## Passos executados
+
+### 1. Clonagem do repositório base
 ```bash
-$ composer install
+git clone https://github.com/DesignPatternsPHP/DesignPatternsPHP.git
+cd DesignPatternsPHP
 ```
 
-Read more about how to install and use `Composer` on your local machine [here](https://getcomposer.org/doc/00-intro.md#installation-linux-unix-osx).
-
-To run the tests use `phpunit`:
-
-```bash
-$ ./vendor/bin/phpunit
-```
-
-## Using Docker (optional)
-
-You can optionally build and browse the documentation using [Docker for Mac, Windows or Linux](https://docs.docker.com/compose/install/).
-
-Just run:
+### 2. Instalação do ambiente (PHP + Composer)
+Foi necessário instalar o PHP via **XAMPP** e o **Composer**, além de
+habilitar a extensão `zip` no `php.ini` (estava desativada por padrão),
+já que o Composer depende dela para baixar pacotes.
 
 ```bash
-$ docker-compose up --build
+composer install
 ```
 
-Go to [http://localhost:8080/](http://localhost:8080/) to read the generated documentation.
+### 3. Criação da classe adaptadora
+Arquivo criado em `Structural/Adapter/EBookAdapter.php`:
 
-If you want to localize your documentation you can pass the locale as an argument to the docker build:
+```php
+<?php
 
+declare(strict_types=1);
+
+namespace DesignPatterns\Structural\Adapter;
+
+/**
+ * Classe adaptadora. Implementa Book, portanto o código cliente que
+ * usa Book não precisa ser alterado para funcionar com um Kindle.
+ */
+class EBookAdapter implements Book
+{
+    public function __construct(protected EBook $eBook)
+    {
+    }
+
+    public function open(): void
+    {
+        $this->eBook->unlock();
+    }
+
+    public function turnPage(): void
+    {
+        $this->eBook->pressNext();
+    }
+
+    /**
+     * EBook::getPage() retorna [páginaAtual, total], mas Book espera
+     * apenas a página atual como int — o adapter faz essa tradução.
+     */
+    public function getPage(): int
+    {
+        return $this->eBook->getPage()[0];
+    }
+}
+```
+
+### 4. Implementação do contrato via composição
+A classe implementa a interface `Book` (mantendo compatibilidade com o
+cliente) e recebe uma instância de `EBook` por **injeção de dependência**
+no construtor, em vez de herdar de `Kindle` — isso é o que caracteriza o
+uso de composição no padrão Adapter.
+
+### 5. Testes
 ```bash
-$ docker-compose build --build-arg language=de
-$ docker-compose up
+php Structural/Adapter/Tests/AdapterTest.php
+```
+Saída obtida: `2` (página após abrir o livro e virar uma página),
+confirmando que o adapter traduz corretamente as chamadas para o `Kindle`.
+
+## Resultado
+
+Com o `EBookAdapter`, o código cliente pode usar:
+
+```php
+$kindle = new Kindle();
+$book = new EBookAdapter($kindle);
+
+$book->open();
+$book->turnPage();
+echo $book->getPage(); // 2
 ```
 
-## Patterns
+...sem precisar conhecer os detalhes internos do `Kindle`, exatamente como
+faria com um `PaperBook` comum.
 
-The patterns can be structured in roughly three different categories. Please click on the [:notebook:](http://en.wikipedia.org/wiki/Software_design_pattern) for a full explanation of the pattern on Wikipedia.
-
-### [Creational](Creational)
-
-* [AbstractFactory](Creational/AbstractFactory) [:notebook:](http://en.wikipedia.org/wiki/Abstract_factory_pattern)
-* [Builder](Creational/Builder) [:notebook:](http://en.wikipedia.org/wiki/Builder_pattern)
-* [FactoryMethod](Creational/FactoryMethod) [:notebook:](http://en.wikipedia.org/wiki/Factory_method_pattern)
-* [Pool](Creational/Pool) [:notebook:](http://en.wikipedia.org/wiki/Object_pool_pattern)
-* [Prototype](Creational/Prototype) [:notebook:](http://en.wikipedia.org/wiki/Prototype_pattern)
-* [SimpleFactory](Creational/SimpleFactory)
-* [Singleton](Creational/Singleton) [:notebook:](http://en.wikipedia.org/wiki/Singleton_pattern)
-* [StaticFactory](Creational/StaticFactory)
-
-### [Structural](Structural)
-
-* [Adapter](Structural/Adapter) [:notebook:](http://en.wikipedia.org/wiki/Adapter_pattern)
-* [Bridge](Structural/Bridge) [:notebook:](http://en.wikipedia.org/wiki/Bridge_pattern)
-* [Composite](Structural/Composite) [:notebook:](http://en.wikipedia.org/wiki/Composite_pattern)
-* [DataMapper](Structural/DataMapper) [:notebook:](http://en.wikipedia.org/wiki/Data_mapper_pattern)
-* [Decorator](Structural/Decorator) [:notebook:](http://en.wikipedia.org/wiki/Decorator_pattern)
-* [DependencyInjection](Structural/DependencyInjection) [:notebook:](http://en.wikipedia.org/wiki/Dependency_injection)
-* [Facade](Structural/Facade) [:notebook:](http://en.wikipedia.org/wiki/Facade_pattern)
-* [FluentInterface](Structural/FluentInterface) [:notebook:](http://en.wikipedia.org/wiki/Fluent_interface)
-* [Flyweight](Structural/Flyweight) [:notebook:](https://en.wikipedia.org/wiki/Flyweight_pattern)
-* [Proxy](Structural/Proxy) [:notebook:](http://en.wikipedia.org/wiki/Proxy_pattern)
-* [Registry](Structural/Registry) [:notebook:](http://en.wikipedia.org/wiki/Service_locator_pattern)
-
-### [Behavioral](Behavioral)
-
-* [ChainOfResponsibilities](Behavioral/ChainOfResponsibilities) [:notebook:](http://en.wikipedia.org/wiki/Chain_of_responsibility_pattern)
-* [Command](Behavioral/Command) [:notebook:](http://en.wikipedia.org/wiki/Command_pattern)
-* [Interpreter](Behavioral/Interpreter) [:notebook:](https://en.wikipedia.org/wiki/Interpreter_pattern)  
-* [Iterator](Behavioral/Iterator) [:notebook:](http://en.wikipedia.org/wiki/Iterator_pattern)
-* [Mediator](Behavioral/Mediator) [:notebook:](http://en.wikipedia.org/wiki/Mediator_pattern)
-* [Memento](Behavioral/Memento) [:notebook:](http://en.wikipedia.org/wiki/Memento_pattern)
-* [NullObject](Behavioral/NullObject) [:notebook:](http://en.wikipedia.org/wiki/Null_Object_pattern)
-* [Observer](Behavioral/Observer) [:notebook:](http://en.wikipedia.org/wiki/Observer_pattern)
-* [Specification](Behavioral/Specification) [:notebook:](http://en.wikipedia.org/wiki/Specification_pattern)
-* [State](Behavioral/State) [:notebook:](http://en.wikipedia.org/wiki/State_pattern)
-* [Strategy](Behavioral/Strategy) [:notebook:](http://en.wikipedia.org/wiki/Strategy_pattern)
-* [TemplateMethod](Behavioral/TemplateMethod) [:notebook:](http://en.wikipedia.org/wiki/Template_method_pattern)
-* [Visitor](Behavioral/Visitor) [:notebook:](http://en.wikipedia.org/wiki/Visitor_pattern)
-
-### [More](More)
-
-* [EAV](More/EAV) [:notebook:](https://en.wikipedia.org/wiki/Entity%E2%80%93attribute%E2%80%93value_model)
-* [Repository](More/Repository)
-* [ServiceLocator](More/ServiceLocator) [:notebook:](http://en.wikipedia.org/wiki/Service_locator_pattern)
-
-
-## Localization & Supported Languages
-  The following languages are currently available. However not all are actively supported. 
-  The current policy is: if there are no native-speaking maintainers we cannot support the given language. 
-  We will still leave the translation as is but we will not update it as the base (English) changes.
-  The table below list which language version is considered "supported" and who maintains it.
-
-  We're sorry. We would love to maintain them but it is not possible for us. So if you would like to take care
-  of one or more languages - contact us.
-
-| Code  | Language  |    Documentation   |  Actively Supported?  | Maintainer |
-| ------------------|-------------|------|-----------------------|------------|
-| en    | English   | [Docs :notebook:](https://designpatternsphp.readthedocs.io/en/latest/) | YES | -- |
-| de    | German    | [Docs :notebook:](https://designpatternsphp.readthedocs.io/de/latest/) | NO | - |
-| ca    | Catalan   | [Docs :notebook:](https://designpatternsphp.readthedocs.io/ca/latest/) | NO | - |
-| zh_CN | Chinese   | [Docs :notebook:](https://designpatternsphp.readthedocs.io/zh_CN/latest/) | NO | - |
-| nl    | Dutch     | [Docs :notebook:](https://designpatternsphp.readthedocs.io/nl/latest/) | NO | - |
-| bg    | Bulgarian | [Docs :notebook:](https://designpatternsphp.readthedocs.io/bg/latest/) | YES | -- |
-| ja    | Japanese  | [Docs :notebook:](https://designpatternsphp.readthedocs.io/ja/latest/) | NO | - |
-| pl    | Polish    | [Docs :notebook:](https://designpatternsphp.readthedocs.io/pl/latest/) | NO | - |
-| pt_BR | Portuguese-Brazil | [Docs :notebook:](https://designpatternsphp.readthedocs.io/pt_BR/latest/) | NO | - |
-| ru    | Russian   | [Docs :notebook:](https://designpatternsphp.readthedocs.io/ru/latest/) | NO | - |
-| es    | Spanish   | [Docs :notebook:](https://designpatternsphp.readthedocs.io/es/latest/) | NO | - |
-| es_MX | Spanish-Mexican | [Docs :notebook:](https://designpatternsphp.readthedocs.io/es_MX/latest/) | NO | - |
-| tr    | Turkish   | [Docs :notebook:](https://designpatternsphp.readthedocs.io/tr/latest/) | NO | - |
-| fr    | French | [Docs :notebook:](https://designpatternsphp.readthedocs.io/fr/latest/) | NO | - |
-| it    | Italian | [Docs :notebook:](https://designpatternsphp.readthedocs.io/it/latest/) | NO | - |
-| uk    | Ukrainian | [Docs :notebook:](https://designpatternsphp.readthedocs.io/uk/latest/)    | NO | - |
+## Autoras
+- Letícia Borges e Yasmin Pereira
