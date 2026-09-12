@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace DesignPatterns\Structural\Adapter;
 
 /**
- * This is the adapter here. Notice it implements Book,
- * therefore you don't have to change the code of the client which is using a Book
+ * Esta é a classe adaptadora. Note que ela implementa Book,
+ * portanto o código cliente que usa Book não precisa ser alterado.
  */
 class EBookAdapter implements Book
 {
@@ -15,21 +15,26 @@ class EBookAdapter implements Book
     }
 
     /**
-     * This class makes the proper translation from one interface to another.
+     * Traduz a chamada esperada pelo cliente (open) para o método
+     * real da classe adaptada (unlock).
      */
-    public function open()
+    public function open(): void
     {
         $this->eBook->unlock();
     }
 
-    public function turnPage()
+    /**
+     * Traduz turnPage() para pressNext().
+     */
+    public function turnPage(): void
     {
         $this->eBook->pressNext();
     }
 
     /**
-     * notice the adapted behavior here: EBook::getPage() will return two integers, but Book
-     * supports only a current page getter, so we adapt the behavior here
+     * Aqui está o ponto mais interessante do adapter: EBook::getPage()
+     * retorna um array [páginaAtual, totalDePáginas], mas Book espera
+     * apenas um int com a página atual. O adapter faz essa conversão.
      */
     public function getPage(): int
     {
